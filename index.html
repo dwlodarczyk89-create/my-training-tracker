@@ -4,232 +4,401 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111827">
-<title>My Training Tracker</title>
+<title>My Training Tracker 2.0</title>
 <style>
+:root{--bg:#0b1220;--card:#172338;--line:#33465f;--green:#4adea4;--txt:#f1f5f9;--muted:#a9b9cc}
 *{box-sizing:border-box}
-body{margin:0;background:#0b1220;color:#f3f4f6;font-family:system-ui,Arial}
-header{padding:22px 16px;background:#111827}
-h1{font-size:23px;margin:0}
-h2{font-size:19px}
-small,.muted{color:#9ca3af}
-main{max-width:650px;margin:auto;padding:15px}
-nav{display:flex;gap:7px;overflow:auto;margin:12px 0}
-button{border:0;border-radius:10px;padding:12px;background:#374151;color:white;font-weight:600;cursor:pointer}
-button.active,.primary{background:#16a34a}
-nav button{white-space:nowrap}
-.card{background:#1f2937;border-radius:15px;padding:16px;margin-bottom:12px}
-.exercise{border-top:1px solid #374151;padding:14px 0}
-input,select{background:#111827;border:1px solid #4b5563;border-radius:8px;padding:10px;color:white;width:100%;font-size:16px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.set{display:grid;grid-template-columns:35px 1fr 1fr;gap:8px;margin:8px 0;align-items:center}
-a{color:#86efac}
-.hidden{display:none}
-.full{width:100%;margin:8px 0}
-.note{font-size:13px;color:#9ca3af}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px -apple-system,BlinkMacSystemFont,Arial,sans-serif}
+header,main{max-width:850px;margin:auto;padding:16px}
+h1{font-size:24px;margin:5px 0}h2{font-size:19px}
+p,small{color:var(--muted);line-height:1.5}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px;position:sticky;top:0;background:var(--bg);z-index:2}
+button{border:1px solid var(--line);background:#243650;color:white;padding:11px;border-radius:10px;font:inherit;cursor:pointer}
+button.active,.primary{background:var(--green);color:#062117;font-weight:bold}
+.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px;margin:12px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+input,select,textarea{width:100%;padding:10px;background:#0c1829;color:white;border:1px solid #52657c;border-radius:8px;font:inherit}
+input[type=checkbox]{width:auto}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.item{background:#203148;border-radius:10px;padding:12px;margin:10px 0}
+.exercise{border-top:1px solid var(--line);padding:12px 0}
+.set{display:grid;grid-template-columns:25px 1fr 1fr;gap:8px;margin:8px 0;align-items:end}
+.muted{color:var(--muted)}a{color:#8ddcf2}
 </style>
 </head>
 <body>
 <header>
-<h1>💪 My Training Tracker</h1>
-<small>Redukcja • Siła • Cardio • Postępy</small>
+<small>SYLWETKA • SIŁA • WYDOLNOŚĆ</small>
+<h1>💪 My Training Tracker 2.0</h1>
+<p>Trzy elastyczne treningi, cardio i analiza postępów.</p>
 </header>
-<main>
-<nav>
-<button onclick="page('today')" id="b-today">Dzisiaj</button>
-<button onclick="page('plan')" id="b-plan">Plan</button>
-<button onclick="page('progress')" id="b-progress">Postępy</button>
-<button onclick="page('history')" id="b-history">Historia</button>
-</nav>
-
-<section id="today">
-<div class="card">
-<h2>Rozpocznij trening</h2>
-<button class="primary" onclick="start('A')">Siłownia A + cardio</button>
-<button onclick="start('B')">Siłownia B + cardio</button>
-<button onclick="start('M')">Marsz / marszobieg</button>
-</div>
-<div id="workout"></div>
-</section>
-
-<section id="plan" class="hidden">
-<div class="card">
-<h2>Twój tydzień</h2>
-<p>Poniedziałek: Siłownia A + cardio</p>
-<p>Wtorek: Marsz lub marszobieg 30–40 min</p>
-<p>Środa: Regeneracja</p>
-<p>Czwartek: Siłownia B + cardio</p>
-<p>Piątek: Regeneracja</p>
-<p>Sobota: Dłuższy marsz 45–60 min</p>
-<p>Niedziela: Odpoczynek</p>
-</div>
-</section>
-
-<section id="progress" class="hidden">
-<div class="card">
-<h2>Pomiar sylwetki</h2>
-<label>Masa ciała (kg)</label>
-<input type="number" id="weight" step="0.1" placeholder="np. 138.5">
-<label>Obwód pasa (cm)</label>
-<input type="number" id="waist" step="0.1" placeholder="np. 120">
-<button class="primary full" onclick="saveWeight()">Zapisz pomiar</button>
-<div id="weightList"></div>
-</div>
-</section>
-
-<section id="history" class="hidden">
-<div class="card">
-<h2>Historia treningów</h2>
-<div id="historyList"></div>
-<button onclick="backup()">Eksportuj kopię danych</button>
-</div>
-</section>
-</main>
-
+<nav id="nav"></nav>
+<main id="app"></main>
 <script>
-const plans={
+"use strict";
+
+const KEY="mtt_mobile_2";
+const TODAY=()=>new Date().toLocaleDateString("en-CA");
+const ID=()=>Date.now()+"-"+Math.random().toString(36).slice(2,6);
+const $=id=>document.getElementById(id);
+const safe=x=>String(x??"").replace(/[&<>"']/g,c=>({
+"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+const num=x=>Number(x)||0;
+
+const PLAN={
 A:[
-["Suwnica na nogi",3,12,"Wstawanie z ławki"],
-["Wyciskanie na maszynie",3,12,"Pompki przy ścianie"],
-["Ściąganie drążka",3,12,"Przyciąganie na maszynie"],
-["Uginanie nóg",2,12,"Most biodrowy"],
-["Wyciskanie barków",2,10,"Unoszenie hantli bokiem"],
-["Pallof press",2,12,"Bird dog"]
+["Suwnica na nogi","Nogi",3,"10–12"],
+["Wyciskanie na maszynie","Klatka",3,"8–12"],
+["Ściąganie drążka","Plecy",3,"10–12"],
+["Uginanie nóg siedząc","Tył ud",2,"12"],
+["Unoszenie hantli bokiem","Barki",2,"12–15"],
+["Uginanie ramion na biceps","Biceps",2,"10–12"],
+["Prostowanie ramion na wyciągu","Triceps",2,"10–12"]
 ],
 B:[
-["Przysiad do ławki",3,10,"Suwnica na nogi"],
-["Wiosłowanie siedząc",3,12,"Wiosłowanie z podparciem"],
-["Wyciskanie hantli",3,10,"Wyciskanie na maszynie"],
-["Hip thrust",2,12,"Most biodrowy"],
-["Unoszenie hantli bokiem",2,15,"Maszyna na barki"],
-["Dead bug",2,8,"Bird dog"]
-]};
-let db;
-try{db=JSON.parse(localStorage.getItem("tracker"))||{}}
-catch(e){db={}}
-db.sessions ||= [];
-db.weights ||= [];
-let current=null;
-let sets={};
+["Przysiad do ławki lub suwnica","Nogi",3,"10"],
+["Wyciskanie hantli skos dodatni","Klatka",3,"10"],
+["Wiosłowanie siedząc","Plecy",3,"10–12"],
+["Hip thrust","Pośladki",2,"12"],
+["Odwrotne rozpiętki","Tył barków",2,"12–15"],
+["Uginanie młotkowe","Biceps",2,"10–12"],
+["Prostowanie ramion nad głową","Triceps",2,"10–12"]
+],
+C:[
+["Suwnica lekko","Nogi",2,"12"],
+["Wyciskanie na maszynie skos","Klatka",3,"10"],
+["Przyciąganie drążka neutralnie","Plecy",3,"10"],
+["Wyciskanie barków na maszynie","Barki",2,"10"],
+["Face pull","Tył barków",2,"15"],
+["Uginanie hantli","Biceps",2,"12"],
+["Prostowanie tricepsa na linie","Triceps",2,"12"]
+]
+};
 
-function persist(){
-try{localStorage.setItem("tracker",JSON.stringify(db))}
-catch(e){alert("Nie udało się zapisać danych.")}
-}
-function page(p){
-document.querySelectorAll("main section").forEach(x=>x.classList.add("hidden"));
-document.getElementById(p).classList.remove("hidden");
-document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
-document.getElementById("b-"+p).classList.add("active");
-if(p==="history")renderHistory();
-if(p==="progress")renderWeights();
-}
-function start(type){
-current=type;sets={};
-let html='<div class="card"><h2>Trening '+type+'</h2>';
-if(plans[type]){
-plans[type].forEach((e,i)=>{
-html+=`<div class="exercise"><h3>${e[0]}</h3>
-<p class="muted">Plan: ${e[1]} serie × ${e[2]} powtórzeń</p>
-<p><a target="_blank" rel="noopener" href="${video(e[0])}">▶ Film instruktażowy</a></p>
-<p>Alternatywa: ${e[3]} <a target="_blank" rel="noopener" href="${video(e[3])}">▶ Film</a></p>
-<div id="sets-${i}"></div>
-<button onclick="addSet(${i})">+ Dodaj serię</button>
-</div>`;
+const CARDIO=[
+"Rower stacjonarny",
+"Bieżnia – marsz",
+"Bieżnia – marszobieg",
+"Orbitrek",
+"Ergometr wioślarski",
+"Schody",
+"Bez cardio"
+];
+
+const empty=()=>({
+next:"A",sessions:[],calendar:[],measurements:[],
+activities:[],reviews:[],draft:null
 });
+let data;
+try{data=JSON.parse(localStorage.getItem(KEY))||empty()}
+catch{data=empty()}
+let tab="Dzisiaj";
+const TABS=["Dzisiaj","Trening","Kalendarz","Pomiary","Garmin","Historia","Review","Ustawienia"];
+
+function save(){
+try{localStorage.setItem(KEY,JSON.stringify(data))}
+catch(e){alert("Brak miejsca na zapis. Wyeksportuj kopię danych.")}
 }
-html+=`<h3>Cardio</h3>
-<select id="cardio">
-<option>Rower stacjonarny</option>
-<option>Orbitrek</option>
-<option>Marsz</option>
-<option>Marszobieg</option>
-<option>Brak</option>
-</select>
-<div class="grid">
-<div><p>Czas (min)</p><input id="minutes" type="number" min="0" placeholder="20"></div>
-<div><p>Dystans (km)</p><input id="distance" type="number" step="0.01" min="0"></div>
+function select(items,value){
+return items.map(x=>`<option ${x===value?"selected":""}>${safe(x)}</option>`).join("");
+}
+function input(id,label,value="",type="text"){
+return `<div><label>${label}</label><input id="${id}" type="${type}" value="${safe(value)}"></div>`;
+}
+function render(){
+$("nav").innerHTML=TABS.map(t=>`<button class="${t===tab?"active":""}" onclick="go('${t}')">${t}</button>`).join("");
+const views={
+"Dzisiaj":home,"Trening":workout,"Kalendarz":calendar,
+"Pomiary":measurements,"Garmin":garmin,
+"Historia":history,"Review":review,"Ustawienia":settings
+};
+$("app").innerHTML=views[tab]();
+}
+function go(t){tab=t;render();scrollTo(0,0)}
+
+function home(){
+const last=data.measurements.at(-1);
+return `<div class="card">
+<small>NASTĘPNY TRENING</small>
+<h2>Siłownia ${data.next}</h2>
+<p>Treningi A → B → C wykonujesz w dowolne dni, również w weekend.</p>
+<button class="primary" onclick="start('${data.next}')">Rozpocznij trening</button>
 </div>
-<p>Wysiłek (1–10)</p>
-<input id="effort" type="number" min="1" max="10" value="3">
-<p>Samopoczucie / dolegliwości</p>
-<input id="notes" placeholder="Jak poszedł trening?">
-<button class="primary full" onclick="saveWorkout()">Zakończ i zapisz trening</button></div>`;
-document.getElementById("workout").innerHTML=html;
-if(plans[type])plans[type].forEach((e,i)=>{
-for(let j=0;j<e[1];j++)addSet(i);
+<div class="grid">
+<div class="card"><small>Siłownia</small><h2>${data.sessions.length}</h2></div>
+<div class="card"><small>Ostatnia waga</small><h2>${safe(last?.weight||"—")} kg</h2></div>
+</div>
+<div class="card">
+<h2>Weekendowy marsz / bieg</h2>
+<p>Jeden dłuższy trening wytrzymałościowy w sobotę lub niedzielę. Intensywność dopasowujemy do regeneracji.</p>
+<button onclick="go('Garmin')">Dodaj aktywność</button>
+</div>
+<div class="card">
+<h2>Nasze zasady</h2>
+<p>3 treningi siłowe tygodniowo, elastyczny kalendarz, cardio według wyboru, cotygodniowy review i pomiary sylwetki.</p>
+</div>`;
+}
+
+function start(p){
+if(data.draft&&!confirm("Zastąpić niedokończony trening?"))return;
+const last=data.sessions.filter(s=>s.plan===p).at(-1);
+data.draft={
+plan:p,date:TODAY(),exercises:PLAN[p].map((e,i)=>({
+name:e[0],muscle:e[1],range:e[3],
+sets:Array.from({length:e[2]},(_,j)=>({
+kg:last?.exercises?.[i]?.sets?.[j]?.kg||"",
+reps:last?.exercises?.[i]?.sets?.[j]?.reps||""
+}))
+})),
+cardio:"Rower stacjonarny",minutes:15,distance:"",hr:""
+};
+save();go("Trening");
+}
+function workout(){
+const d=data.draft;
+if(!d)return `<div class="card"><h2>Wybierz trening</h2>
+<div class="row">
+${["A","B","C"].map(p=>`<button onclick="start('${p}')">Trening ${p}</button>`).join("")}
+</div><p>Następny w kolejce: ${data.next}</p></div>`;
+return `<div class="card">
+<h2>Trening ${d.plan}</h2>
+${input("workDate","Data treningu",d.date,"date")}
+<p>Ciężar wpisuj w kilogramach. Przy hantlach wpisuj ciężar jednego hantla.</p>
+${d.exercises.map((e,i)=>`<div class="exercise">
+<b>${safe(e.name)}</b><br><small>${safe(e.muscle)} · ${safe(e.range)} powt.</small>
+${e.sets.map((s,j)=>`<div class="set">
+<span>${j+1}.</span>
+<div><label>kg</label><input type="number" step="0.5" value="${safe(s.kg)}" oninput="editSet(${i},${j},'kg',this.value)"></div>
+<div><label>Powt.</label><input type="number" value="${safe(s.reps)}" oninput="editSet(${i},${j},'reps',this.value)"></div>
+</div>`).join("")}
+<a target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(e.name+" technika ćwiczenia")}">▶ Pokaż technikę</a>
+</div>`).join("")}
+<h2>Cardio</h2>
+<label>Urządzenie</label>
+<select onchange="editDraft('cardio',this.value)">${select(CARDIO,d.cardio)}</select>
+<div class="grid">
+${input("minutes","Czas (min)",d.minutes,"number")}
+${input("distance","Dystans (km)",d.distance,"number")}
+</div>
+${input("hr","Średnie tętno",d.hr,"number")}
+<p><button class="primary" onclick="finish()">Zapisz trening</button></p>
+</div>`;
+}
+function editSet(i,j,k,v){data.draft.exercises[i].sets[j][k]=v;save()}
+function editDraft(k,v){data.draft[k]=v;save()}
+function finish(){
+const d=data.draft;
+d.date=$("workDate").value;
+d.minutes=$("minutes").value;
+d.distance=$("distance").value;
+d.hr=$("hr").value;
+data.sessions.push({...d,id:ID()});
+data.next={A:"B",B:"C",C:"A"}[d.plan];
+data.draft=null;
+save();go("Historia");
+}
+
+function calendar(){
+return `<div class="card"><h2>Elastyczny kalendarz</h2>
+<div class="grid">
+${input("calDate","Data",TODAY(),"date")}
+<div><label>Aktywność</label><select id="calType">
+${select(["Siłownia A","Siłownia B","Siłownia C","Długi marsz / bieg","Regeneracja"],"Siłownia "+data.next)}
+</select></div></div>
+<p><button class="primary" onclick="addCalendar()">Dodaj</button></p>
+${data.calendar.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(x=>`
+<div class="item">
+<b>${safe(x.name)}</b>
+<div class="grid">
+<input type="date" value="${safe(x.date)}" onchange="updateCal('${x.id}','date',this.value)">
+<select onchange="updateCal('${x.id}','status',this.value)">
+${["Plan","Wykonano","Pominięto"].map(s=>`<option ${s===x.status?"selected":""}>${s}</option>`).join("")}
+</select></div>
+<p><button onclick="removeCal('${x.id}')">Usuń</button></p>
+</div>`).join("")||"<p>Brak zaplanowanych aktywności.</p>"}
+</div>`;
+}
+function addCalendar(){
+data.calendar.push({id:ID(),date:$("calDate").value,name:$("calType").value,status:"Plan"});
+save();render();
+}
+function updateCal(id,key,value){
+data.calendar.find(x=>x.id===id)[key]=value;save();render();
+}
+function removeCal(id){
+data.calendar=data.calendar.filter(x=>x.id!==id);save();render();
+}
+
+function measurements(){
+const last=data.measurements.at(-1)||{};
+return `<div class="card"><h2>Pomiary sylwetki</h2>
+<div class="grid">
+${input("mDate","Data",TODAY(),"date")}
+${input("weight","Waga (kg)",last.weight||"","number")}
+${input("waist","Pas (cm)",last.waist||"","number")}
+${input("chest","Klatka (cm)",last.chest||"","number")}
+${input("hips","Biodra (cm)",last.hips||"","number")}
+${input("arm","Ramię (cm)",last.arm||"","number")}
+${input("thigh","Udo (cm)",last.thigh||"","number")}
+</div>
+<p><button class="primary" onclick="addMeasure()">Zapisz pomiary</button></p>
+</div>
+<div class="card"><h2>Historia pomiarów</h2>
+${data.measurements.slice().reverse().map(m=>`
+<div class="item"><b>${safe(m.date)}</b>
+<p>Waga: ${safe(m.weight)} kg · Pas: ${safe(m.waist)} cm</p>
+<p>Klatka: ${safe(m.chest)} · Biodra: ${safe(m.hips)} · Ramię: ${safe(m.arm)} · Udo: ${safe(m.thigh)}</p>
+</div>`).join("")||"<p>Brak pomiarów.</p>"}
+</div>
+<div class="card"><h2>Zdjęcia sylwetki</h2>
+<p>Rób zdjęcia przód / bok / tył co 4 tygodnie. Na razie przechowuj je w prywatnym albumie telefonu. Nie dodawaj ich do publicznego GitHuba.</p>
+</div>`;
+}
+function addMeasure(){
+const fields=["weight","waist","chest","hips","arm","thigh"];
+const m={id:ID(),date:$("mDate").value};
+fields.forEach(k=>m[k]=$(k).value);
+data.measurements.push(m);
+save();render();
+}
+
+function garmin(){
+return `<div class="card"><h2>Garmin Epix Pro 2</h2>
+<p>Importuj raz w tygodniu pliki TCX lub GPX z Garmin Connect. Ta wersja nie obsługuje jeszcze plików FIT.</p>
+<input type="file" id="garminFile" accept=".tcx,.gpx" multiple>
+<p><button class="primary" onclick="importGarmin()">Importuj aktywności</button></p>
+<p id="importInfo"></p>
+</div>
+<div class="card"><h2>Dodaj aktywność ręcznie</h2>
+<div class="grid">
+${input("aDate","Data",TODAY(),"date")}
+<div><label>Rodzaj</label><select id="aType">${select(["Marsz","Bieg","Marszobieg","Rower","Inne"],"Marsz")}</select></div>
+${input("aTime","Czas (min)","","number")}
+${input("aDist","Dystans (km)","","number")}
+${input("aHr","Średnie tętno","","number")}
+</div>
+<p><button onclick="addActivity()">Zapisz aktywność</button></p>
+</div>
+<div class="card"><h2>Aktywności</h2>
+${data.activities.slice().reverse().map(a=>`
+<div class="item"><b>${safe(a.date)} · ${safe(a.type)}</b>
+<p>${safe(a.minutes)} min · ${safe(a.distance)} km · HR ${safe(a.hr||"—")}</p>
+</div>`).join("")||"<p>Brak aktywności.</p>"}
+</div>`;
+}
+function addActivity(){
+data.activities.push({
+id:ID(),date:$("aDate").value,type:$("aType").value,
+minutes:$("aTime").value,distance:$("aDist").value,
+hr:$("aHr").value,source:"Ręcznie"
 });
+save();render();
 }
-function video(name){
-return "https://www.youtube.com/results?search_query="+encodeURIComponent(name+" technika ćwiczenia");
-}
-function addSet(i){
-sets[i] ||=0;
-sets[i]++;
-let n=sets[i];
-let div=document.createElement("div");
-div.className="set";
-div.innerHTML=`<span>${n}.</span>
-<input type="number" step="0.5" min="0" placeholder="kg" data-kg="${i}">
-<input type="number" min="0" placeholder="powt." data-reps="${i}">`;
-document.getElementById("sets-"+i).appendChild(div);
-}
-function saveWorkout(){
-if(!current)return;
-let exercises=[];
-if(plans[current]){
-plans[current].forEach((e,i)=>{
-let kg=[...document.querySelectorAll(`[data-kg="${i}"]`)];
-let reps=[...document.querySelectorAll(`[data-reps="${i}"]`)];
-exercises.push({
-name:e[0],
-sets:kg.map((x,j)=>({kg:x.value,reps:reps[j].value}))
+async function importGarmin(){
+const files=[...$("garminFile").files];
+let added=0,errors=[];
+for(const f of files){
+try{
+const xml=new DOMParser().parseFromString(await f.text(),"application/xml");
+if(xml.querySelector("parsererror"))throw Error("Błędny XML");
+const nodes=(root,name)=>[...root.getElementsByTagName("*")].filter(e=>e.localName===name);
+const first=(root,name)=>nodes(root,name)[0]?.textContent||"";
+const tcx=f.name.toLowerCase().endsWith(".tcx");
+const acts=tcx?nodes(xml,"Activity"):nodes(xml,"trk");
+for(const a of acts){
+const points=nodes(a,tcx?"Trackpoint":"trkpt");
+const times=points.map(p=>Date.parse(first(p,tcx?"Time":"time"))).filter(Number.isFinite);
+const distances=points.map(p=>num(first(p,"DistanceMeters"))).filter(x=>x>0);
+const hr=points.map(p=>num(first(p,tcx?"Value":"hr"))).filter(x=>x>0);
+const date=(tcx?a.getAttribute("StartTime"):first(a,"time"))||new Date(times[0]||Date.now()).toISOString();
+const duration=times.length>1?(Math.max(...times)-Math.min(...times))/60000:0;
+const distance=distances.length?Math.max(...distances)/1000:0;
+const fingerprint=[f.name,date,Math.round(duration)].join("|");
+if(data.activities.some(x=>x.fingerprint===fingerprint))continue;
+data.activities.push({
+id:ID(),date:date.slice(0,10),
+type:tcx?(a.getAttribute("Sport")||"Trening"):"GPS",
+minutes:duration.toFixed(1),distance:distance.toFixed(2),
+hr:hr.length?Math.round(hr.reduce((x,y)=>x+y,0)/hr.length):"",
+fingerprint,source:tcx?"TCX":"GPX"
 });
-});
+added++;
 }
-db.sessions.push({
-date:new Date().toLocaleString("pl-PL"),
-type:current,exercises,
-cardio:document.getElementById("cardio").value,
-minutes:document.getElementById("minutes").value,
-distance:document.getElementById("distance").value,
-effort:document.getElementById("effort").value,
-notes:document.getElementById("notes").value
-});
-persist();current=null;
-document.getElementById("workout").innerHTML="";
-alert("Trening zapisany!");
+}catch(e){errors.push(f.name+": "+e.message)}
 }
-function saveWeight(){
-let w=document.getElementById("weight").value;
-let waist=document.getElementById("waist").value;
-if(!w&&!waist)return alert("Wpisz pomiar.");
-db.weights.push({date:new Date().toLocaleDateString("pl-PL"),w,waist});
-persist();renderWeights();
+save();render();
+$("importInfo").textContent="Dodano: "+added+". "+errors.join(" ");
 }
-function renderWeights(){
-document.getElementById("weightList").innerHTML=
-db.weights.slice().reverse().map(x=>
-`<p>${x.date}: ${x.w||"—"} kg | pas: ${x.waist||"—"} cm</p>`).join("")||"<p>Brak pomiarów</p>";
+
+function history(){
+return `<div class="card"><h2>Historia siłowni</h2>
+${data.sessions.slice().reverse().map(s=>`
+<div class="item">
+<b>${safe(s.date)} · Trening ${safe(s.plan)}</b>
+${s.exercises.map(e=>`<p>${safe(e.name)}: ${e.sets.map(x=>safe(x.kg)+" kg × "+safe(x.reps)).join(" / ")}</p>`).join("")}
+<p>Cardio: ${safe(s.cardio)} · ${safe(s.minutes)} min</p>
+</div>`).join("")||"<p>Brak treningów.</p>"}
+</div>`;
 }
-function renderHistory(){
-document.getElementById("historyList").innerHTML=
-db.sessions.slice().reverse().map(x=>{
-let safe=s=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let ex=x.exercises.map(e=>`<p><b>${safe(e.name)}</b>: ${e.sets.map(s=>safe(s.kg)+" kg × "+safe(s.reps)).join(", ")}</p>`).join("");
-return `<div class="exercise"><b>${safe(x.date)} — ${safe(x.type)}</b>
-${ex}<p>${safe(x.cardio)}: ${safe(x.minutes)} min, ${safe(x.distance)} km</p>
-<p class="muted">${safe(x.notes)}</p></div>`;
-}).join("")||"<p>Brak zapisanych treningów</p>";
+function review(){
+const start=new Date();
+start.setDate(start.getDate()-7);
+const cutoff=start.toLocaleDateString("en-CA");
+const sessions=data.sessions.filter(x=>x.date>=cutoff);
+const activities=data.activities.filter(x=>x.date>=cutoff);
+return `<div class="card">
+<h2>Review ostatnich 7 dni</h2>
+<div class="grid">
+<div class="item"><small>Siłownia</small><h2>${sessions.length} / 3</h2></div>
+<div class="item"><small>Cardio / Garmin</small><h2>${activities.length}</h2></div>
+</div>
+<p>Sprawdź regenerację, sen, ból stóp i piszczeli oraz postępy ciężarów.</p>
+<label>Notatki z tygodnia</label>
+<textarea id="reviewNote" rows="5" placeholder="Jak się czułem? Co zmieniamy?"></textarea>
+<p><button class="primary" onclick="addReview()">Zapisz review</button></p>
+</div>
+<div class="card"><h2>Poprzednie przeglądy</h2>
+${data.reviews.slice().reverse().map(r=>`<div class="item"><b>${safe(r.date)}</b><p>${safe(r.note)}</p></div>`).join("")||"<p>Brak przeglądów.</p>"}
+</div>`;
+}
+function addReview(){
+data.reviews.push({id:ID(),date:TODAY(),note:$("reviewNote").value});
+save();render();
+}
+function settings(){
+return `<div class="card"><h2>Kopia zapasowa</h2>
+<p>Eksportuj dane przed każdą aktualizacją aplikacji.</p>
+<button class="primary" onclick="backup()">Pobierz kopię JSON</button>
+<label>Przywróć kopię</label>
+<input type="file" accept=".json" onchange="restore(this.files[0])">
+</div>
+<div class="card">
+<h2>Bezpieczeństwo</h2>
+<p>Dane są zapisane lokalnie w przeglądarce. Nie synchronizują się automatycznie z innymi telefonami.</p>
+<p>Nie usuwaj danych witryny bez wykonania kopii.</p>
+</div>`;
 }
 function backup(){
-let blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});
-let url=URL.createObjectURL(blob);
-let a=document.createElement("a");
-a.href=url;a.download="trening-backup.json";a.click();
-setTimeout(()=>URL.revokeObjectURL(url),1000);
+const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="my-training-backup-"+TODAY()+".json";
+a.click();
+setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
-page("today");
+async function restore(file){
+if(!file)return;
+try{
+const incoming=JSON.parse(await file.text());
+if(!Array.isArray(incoming.sessions))throw Error("Nieprawidłowa kopia");
+if(!confirm("Zastąpić obecne dane?"))return;
+data={...empty(),...incoming};
+save();render();
+}catch(e){alert(e.message)}
+}
+render();
 </script>
 </body>
 </html>
